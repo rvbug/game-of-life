@@ -1,5 +1,8 @@
-# Game of Kife
+# Game of Life
 To implement game of life in rust
+
+Instructions coming soon
+
 
 
 # Verison 1.0 (In Progress)
