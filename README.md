@@ -1,8 +1,4 @@
 # Game of Life
-To implement game of life in rust
-
-
-# Game of Life (v 1.0)
 
 A terminal-based implementation of Conway's Game of Life written in Rust using the `ratatui` library for the terminal user interface and `crossterm` for terminal manipulation.
 
