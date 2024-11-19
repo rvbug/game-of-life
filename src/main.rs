@@ -1,3 +1,16 @@
+//! # Game of Life
+//! 
+//! A terminal-based implementation of Conway's Game of Life using the `ratatui` library
+//! for terminal user interface and `crossterm` for terminal manipulation.
+//! 
+//! ## Features
+//! 
+//! * Interactive terminal interface
+//! * Real-time statistics tracking
+//! * System resource monitoring
+//! * Configurable grid size
+//! * Toroidal grid implementation
+
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -19,14 +32,22 @@ use std::{
 use rand::Rng;
 use sysinfo::{System, SystemExt};
 
+
+/// Stores statistics about the Game of Life simulation.
+#[derive(Debug)]
 struct Stats {
+    /// Current generation number
     generation: u64,
+    /// Total number of cells created since start
     cells_created: u64,
+    /// Total number of cells destroyed since start
     cells_destroyed: u64,
+    /// Current number of living cells
     current_population: u64,
 }
 
 impl Stats {
+    /// Creates a new `Stats` instance with all counters initialized to zero.
     fn new() -> Self {
         Stats {
             generation: 0,
@@ -37,16 +58,37 @@ impl Stats {
     }
 }
 
+/// Main application state container for the Game of Life simulation.
+#[derive(Debug)] 
 struct App {
+    /// The game board represented as a 2D vector of booleans where true indicates a live cell
     grid: Vec<Vec<bool>>,
+    /// Width of the game board
     width: usize,
+    /// Height of the game board
     height: usize,
+    /// Indicates whether the simulation is currently running
     running: bool,
+    /// Statistics tracking for the simulation
     stats: Stats,
+    /// System information for resource monitoring
     sys: System,
 }
 
 impl App {
+    /// Creates a new Game of Life application with the specified dimensions.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `width` - The width of the game board
+    /// * `height` - The height of the game board
+    /// 
+    /// # Returns
+    /// 
+    /// A new `App` instance with a randomly initialized grid where approximately 30%
+    /// of cells are alive.
+
+    
     fn new(width: usize, height: usize) -> App {
         let mut rng = rand::thread_rng();
         let grid = (0..height)
@@ -66,14 +108,25 @@ impl App {
         app.stats.current_population = app.count_total_alive();
         app
     }
-
+    
+    /// Counts the total number of living cells in the grid.
+    /// 
+    /// # Returns
+    /// 
+    /// The number of cells that are currently alive.
     fn count_total_alive(&self) -> u64 {
         self.grid.iter()
             .flat_map(|row| row.iter())
             .filter(|&&cell| cell)
             .count() as u64
     }
-
+    
+    /// Updates the grid to the next generation according to Conway's Game of Life rules:
+    /// 
+    /// * Any live cell with fewer than two live neighbors dies (underpopulation)
+    /// * Any live cell with two or three live neighbors survives
+    /// * Any live cell with more than three live neighbors dies (overpopulation)
+    /// * Any dead cell with exactly three live neighbors becomes alive (reproduction)
     fn update(&mut self) {
         let mut new_grid = self.grid.clone();
         let mut cells_created = 0;
@@ -111,6 +164,19 @@ impl App {
         self.sys.refresh_memory();
     }
 
+    /// Counts the number of live neighbors for a cell at the specified coordinates.
+    /// 
+    /// The grid is treated as toroidal, meaning the edges wrap around to the opposite side.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `x` - The x-coordinate of the cell
+    /// * `y` - The y-coordinate of the cell
+    /// 
+    /// # Returns
+    /// 
+    /// The number of live neighbors (0-8)
+    
     fn count_neighbors(&self, x: usize, y: usize) -> u8 {
         let mut count = 0;
         for dy in -1..=1 {
@@ -129,12 +195,20 @@ impl App {
         }
         count
     }
-
+    
+    /// Toggles the simulation between running and paused states.
     fn toggle_running(&mut self) {
         self.running = !self.running;
     }
 }
 
+/// Draws the game grid to the terminal interface.
+/// 
+/// # Arguments
+/// 
+/// * `f` - The frame to draw on
+/// * `app` - The application state
+/// * `area` - The area of the terminal to draw in
 fn draw_grid(f: &mut ratatui::Frame, app: &App, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
@@ -155,6 +229,13 @@ fn draw_grid(f: &mut ratatui::Frame, app: &App, area: Rect) {
     f.render_widget(paragraph, area);
 }
 
+/// Draws the statistics panel to the terminal interface.
+/// 
+/// # Arguments
+/// 
+/// * `f` - The frame to draw on
+/// * `app` - The application state
+/// * `area` - The area of the terminal to draw in
 fn draw_stats(f: &mut ratatui::Frame, app: &App, area: Rect) {
     let memory_used = app.sys.used_memory() / 1024; // Convert to KB
     let memory_total = app.sys.total_memory() / 1024;
@@ -187,6 +268,20 @@ fn draw_stats(f: &mut ratatui::Frame, app: &App, area: Rect) {
     f.render_widget(stats_widget, area);
 }
 
+/// Main entry point for the Game of Life application.
+/// 
+/// Sets up the terminal interface, creates the initial game state, and runs the main event loop.
+/// The game runs at 10 FPS (100ms intervals) when active.
+/// 
+/// # Controls
+/// 
+/// * Space: Play/Pause the simulation
+/// * Enter: Step forward one generation (when paused)
+/// * q: Quit the application
+/// 
+/// # Errors
+/// 
+/// Returns an error if terminal manipulation fails.
 fn main() -> Result<(), Box<dyn Error>> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
