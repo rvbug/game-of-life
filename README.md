@@ -132,6 +132,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 ```
 
+## Notes
+- The grid wraps around at the edges (toroidal)
+- The simulation runs at 10 FPS (100ms intervals)
+- Initial population density is set to 30%
+- Memory usage is displayed in KB/MB
+
+
 ## Future Improvements
 Potential areas for enhancement:
 1. Add save/load functionality for grid states
@@ -140,13 +147,6 @@ Potential areas for enhancement:
 4. Add configuration options for update speed
 5. Implement mouse support for cell toggling
 6. Add different visualization modes
-
-## Notes
-- The grid wraps around at the edges (toroidal)
-- The simulation runs at 10 FPS (100ms intervals)
-- Initial population density is set to 30%
-- Memory usage is displayed in KB/MB
+7. Run on server serving multiple clients
 
 
-# Future 
-2nd version will have tcp server running multiple clients
